@@ -29,7 +29,7 @@ class CurseForge extends ModProvider
         $pageSize = 20;
         $offset = ($page - 1) * $pageSize;
         $mods = [];
-        $data = static::request("/v1/mods/search?gameid=432&classId=6&sortOrder=desc&pageSize=$pageSize&index=$offset&searchFilter=" . urlencode($query));
+        $data = static::request("/v1/mods/search?gameid=432&sortOrder=desc&pageSize=$pageSize&index=$offset&searchFilter=" . urlencode($query));
         if ($data) {
             foreach ($data->data as $mod) {
                 array_push($mods, static::generateModData($mod));
@@ -62,10 +62,9 @@ class CurseForge extends ModProvider
         if ($mod === null) {
             return null;
         }
-        return static::generateModData($mod->data);
+        return static::generateModData($mod->data, true);
     }
-
-    private static function generateModData($mod)
+    private static function generateModData($mod, $search = false)
     {
         $modData = new ImportedModData();
 
@@ -81,17 +80,42 @@ class CurseForge extends ModProvider
         }
         $modData->authors = implode(", ", $authors);
 
-        $modData->thumbnailUrl = $mod->logo->thumbnailUrl;
+        $modData->thumbnailUrl = empty($mod->logo->thumbnailUrl) ? "https://www.curseforge.com/favicon.ico" : $mod->logo->thumbnailUrl;
         $modData->thumbnailDesc = empty($mod->logo->description) ? $mod->name : $mod->logo->description;
         $modData->websiteUrl = $mod->links->websiteUrl;
 
-        $modData->versions = array();
-        foreach ($mod->latestFiles as $file) {
-            $modData->versions[$file->displayName] = (object) [
-                "url" => $file->downloadUrl,
-                "filename" => $file->fileName,
-                "gameVersions" => $file->gameVersions
-            ];
+        $modData->versions = [];
+        if ($search){
+            $index = 0;
+            while (true)
+            {
+                $files = static::request("/v1/mods/$modData->id/files?pageSize=50&index=$index");
+                if ($files === null) {
+                    return null;
+                }
+                foreach ($files->data as $file) {
+                    $modData->versions[$file->displayName] = (object) [
+                        "url" => $file->downloadUrl,
+                        "filename" => $file->fileName,
+                        "gameVersions" => $file->gameVersions
+                    ];
+                }
+                if ($index >= $files->pagination->totalCount)
+                {
+                    return $modData;
+                }
+                $index += 50;
+            }
+        }
+        else
+        {
+            foreach ($mod->latestFiles as $file) {
+                $modData->versions[$file->displayName] = (object) [
+                    "url" => $file->downloadUrl,
+                    "filename" => $file->fileName,
+                    "gameVersions" => $file->gameVersions
+                ];
+            }
         }
 
         return $modData;

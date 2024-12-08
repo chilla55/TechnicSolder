@@ -34,17 +34,18 @@
         @endif
         <div class="row row-flex">
             <div class="col-xs-1" style='padding-right:0px;justify-content:center;'>
-                {!! !empty($mod->thumbnailUrl) ? Html::image($mod->thumbnailUrl, $mod->thumbnailDesc, array('style' => 'width:100%;')) : "" !!}
+                {!! !empty($mod->thumbnailUrl) ? '<img src="' . $mod->thumbnailUrl . '" alt="' . $mod->thumbnailDesc . '" style="width:100%;">' : "" !!}
             </div>
             <div class="col-xs-11">
                 <p><b>Name:</b> {{ property_exists($mod, "displayName") ? $mod->displayName : $mod->name }}</p>
                 <p><b>Summary:</b> {{ property_exists($mod, "displaySummary") ? $mod->displaySummary : $mod->summary }}</p>
                 <p><b>Author(s):</b> {{ $mod->authors }}</p>
-                <p><b>Link:</b> {!! Html::link($mod->websiteUrl, $mod->websiteUrl, ["target" => "_blank"]) !!}</p>
+                <p><b>Link:</b> <a href="{{ $mod->websiteUrl }}" target="_blank">{{ $mod->websiteUrl }}</a></p>
             </div>
         </div>
         <br>
         <form method="post">
+            @csrf
             <table class="table table-striped table-bordered table-hover" id="dataTables">
                 <thead>
                     <tr>
@@ -64,8 +65,8 @@
                     </tr>
                 @endforeach
             </table>
-            {!! Form::submit('Import', ['class' => 'btn btn-success']) !!}
-            {!! Html::link(URL::previous(), 'Go Back', ['class' => 'btn btn-primary']) !!}
+            <button type="submit" class="btn btn-success">Import</button>
+            <a href="{{ URL::previous() }}" class="btn btn-primary">Go Back</a>
         </form>
         {{-- <div class="text-center">
             <a class="btn btn-default" {!! $pagination->currentPage <= 1 ? "href=\"#\" disabled" : "href=\"?page=" . strval($pagination->currentPage - 1) . "\"" !!}><i class="fa fa-angle-left fa-fw"></i></a> Page {{ number_format($pagination->currentPage) }} of {{ number_format($pagination->totalPages) }} ({{ number_format($pagination->totalItems) }}) <a class="btn btn-default" {!! $pagination->currentPage >= $pagination->totalPages ? "href=\"#\" disabled" : "href=\"?page=" . strval($pagination->currentPage + 1) . "\"" !!}><i class="fa fa-angle-right fa-fw"></i></a>

@@ -50,6 +50,7 @@ abstract class ModProvider
         curl_exec($curl_h);
         curl_close($curl_h);
         fclose($tmpFile);
+        $modVersion = "";
 
         if (!static::useRawVersion()) {
             // Open the downloaded mod zip file
@@ -60,13 +61,41 @@ abstract class ModProvider
                 return ["mod_corrupt" => "Unable to open mod file for version $version, its likely corrupt"];
             }
 
-            $modVersion = "";
 
             // Try load the version from forge
             $forgeData = $zip->getFromName('mcmod.info');
             if ($forgeData !== false) {
                 $tmpData = json_decode($forgeData)[0];
                 $modVersion = "$tmpData->mcversion-$tmpData->version";
+            }
+
+            $forgeToml = $zip->getFromName('META-INF/mods.toml');
+            if ($forgeToml !== false) {
+                $modsTomlData = explode("\n", $forgeToml);
+                foreach ($modsTomlData as $line) {
+                    if (strpos($line, 'version=') !== false) {
+                        $modVersion = trim(explode('=', $line)[1], "\"");
+                        break;
+                    }
+                }
+                if (strpos($modVersion, '${file.jarVersion}') !== false) {
+                    $modVersion = "";
+                    $manifest = $zip->getFromName('META-INF/MANIFEST.MF');
+                    if ($manifest !== false) {
+                        $manifestData = explode("\n", $manifest);
+                        foreach ($manifestData as $line) {
+                            if (strpos($line, 'Implementation-Version: ') !== false) {
+                                $modVersion = trim(explode('Implementation-Version: ', $line)[1]);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            if (!empty($modVersion)) {
+                error_log(print_r($modVersion, true));
+            } else {
+                error_log("Mod version is empty or invalid.");
             }
 
             // Try load the version from fabric
@@ -101,7 +130,9 @@ abstract class ModProvider
                 return ["version_missing" => "Unable to detect version number for $version"];
             }
         }
-
+        if ($modVersion == "") {
+            $modVersion = $version;
+        }
         // Check if the version already exists for the mod
         if (Modversion::where([
             'mod_id' => $modId,
@@ -133,7 +164,7 @@ abstract class ModProvider
         // Add the version to the db
         $ver = new Modversion();
         $ver->mod_id = $modId;
-        $ver->version = $version;
+        $ver->version = $modVersion;
         $ver->filesize = filesize($finalPath);
         $ver->md5 = md5_file($finalPath);
         $ver->save();

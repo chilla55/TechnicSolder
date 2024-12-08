@@ -47,15 +47,19 @@
             <tbody>
             @foreach ($mods as $mod)
                 <tr>
-                    <td style='text-align:center;vertical-align:middle;'>{!! !empty($mod->thumbnailUrl) ? Html::image($mod->thumbnailUrl, $mod->thumbnailDesc, array('style' => 'height:32px')) : "" !!}</td>
+                    <td style='text-align:center;vertical-align:middle;'>
+                        @if (!empty($mod->thumbnailUrl))
+                            <img src="{{ $mod->thumbnailUrl }}" alt="{{ $mod->thumbnailDesc }}" style="height:32px">
+                        @endif
+                    </td>
                     <td>
                         <b>{{ property_exists($mod, "displayName") ? $mod->displayName : $mod->name }}</b>
                         <br/>
                         {{ property_exists($mod, "displaySummary") ? $mod->displaySummary : $mod->summary }}
                     </td>
                     <td>{{ $mod->authors }}</td>
-                    <td>{!! Html::link($mod->websiteUrl, $mod->websiteUrl, ["target" => "_blank"]) !!}</td>
-                    <td>{!! Html::link('mod/import/details/'.$provider.'/'.$mod->id,'Import', ["class" => "btn btn-xs btn-primary"]) !!}</td>
+                    <td><a href="{{ $mod->websiteUrl }}" target="_blank">{{ $mod->websiteUrl }}</a></td>
+                    <td><a href="{{ url('mod/import/details/'.$provider.'/'.$mod->id) }}" class="btn btn-xs btn-primary">Import</a></td>
                 </tr>
             @endforeach
         </table>

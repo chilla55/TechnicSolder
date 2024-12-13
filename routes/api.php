@@ -22,4 +22,7 @@ Route::get('modpack/{modpack}/{build}', [ApiController::class, 'getModpackBuild'
 
 Route::get('mod/{mod?}/{version?}', [ApiController::class, 'getMod']);
 
+Route::post('createmod/{mod}', [ApiController::class, 'PostCreateMod']);
+Route::post('createmodversion/{mod}', [ApiController::class, 'PostCreateModVersion']);
+
 Route::get('verify/{key}', [ApiController::class, 'getVerify']);

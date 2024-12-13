@@ -94,6 +94,12 @@ class CurseForge extends ModProvider
                     return null;
                 }
                 foreach ($files->data as $file) {
+                    if (empty($file->displayName) || empty($file->downloadUrl) || empty($file->fileName) || empty($file->gameVersions)){
+                        $file = static::request("/v1/mods/$modData->id/files/$file->id");
+                    }
+                    if (empty($file->displayName) || empty($file->downloadUrl) || empty($file->fileName) || empty($file->gameVersions)){
+                        continue;
+                    }
                     $modData->versions[$file->displayName] = (object) [
                         "url" => $file->downloadUrl,
                         "filename" => $file->fileName,

@@ -37,12 +37,15 @@ abstract class ModProvider
     {
         $url = $modData->versions[$version]->url;
         $fileName = $modData->versions[$version]->filename;
-
+        if (empty($url)) {
+            return ["mod_corrupt" => "Unable to find download url for version $version"];
+        }
         // Create a temp file to download to
         $tmpFileName = tempnam(sys_get_temp_dir(), "mod");
 
         // Download the file
         $tmpFile = fopen($tmpFileName, "wb");
+        
         $curl_h = curl_init($url);
         curl_setopt($curl_h, CURLOPT_FILE, $tmpFile);
         curl_setopt($curl_h, CURLOPT_FOLLOWLOCATION, 1);

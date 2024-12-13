@@ -274,4 +274,83 @@ class ApiController extends Controller
 
         return $response;
     }
+
+    private Function PostCreateMod($modSlug)
+    {
+        if (! $this->key) {
+            return response()->json(['error' => 'API key required'], 403);
+        }
+        $mod = Cache::remember('mod:'.$modSlug, now()->addMinutes(5), function () use ($modSlug) {
+            return Mod::with('versions')->where('name', $modSlug)->first();
+        });
+        if ($mod) {
+            return response()->json(['error' => 'Mod already exists'], 409);
+        }
+
+        $mod = new Mod;
+        $mod->name = Str::slug($modSlug);
+        $mod->pretty_name = Request::input('pretty_name');
+        $mod->author = Request::input('author');
+        $mod->description = Request::input('description');
+        $mod->link = Request::input('link');
+        $mod->save();
+        
+        $response = $mod->only([
+            'id',
+            'name',
+            'pretty_name',
+            'author',
+            'description',
+            'link',
+        ]);
+
+        return response()->json($response);
+    }
+
+    private Function PostCreateModVersion($modSlug)
+    {
+        $mod = Cache::remember('mod:'.$modSlug, now()->addMinutes(5), function () use ($modSlug) {
+            return Mod::with('versions')->where('name', $modSlug)->first();
+        });
+
+        if (! $mod) {
+            return response()->json(['error' => 'Mod does not exist'], 404);
+        }
+
+        $version = Request::input('version');
+
+        if (Modversion::where([
+            'mod_id' => $mod->id,
+            'version' => $version,
+        ])->count() > 0) {
+            return response()->json([
+                'status' => 'error',
+                'reason' => 'That mod version already exists',
+            ]);
+        }
+        $ver = new Modversion;
+        $ver->mod_id = $mod->id;
+        $ver->version = $version;
+
+        $file_md5 = $this->mod_md5($mod, $version);
+        $pfile_md5 = ! $file_md5['success'] ? 'Null' : $file_md5['md5'];
+        if ($file_md5['success'] && ! empty($md5)) {
+                $ver->filesize = $file_md5['filesize'];
+                $ver->md5 = $md5;
+                $ver->save();
+
+                return response()->json([
+                    'status' => 'success',
+                    'version' => $ver->version,
+                    'md5' => $ver->md5,
+                    'filesize' => $ver->humanFilesize(),
+                ]);
+        } else {
+            return response()->json([
+                'status' => 'error',
+                'reason' => 'MD5 hashing failed. '.$file_md5['message'],
+            ]);
+        }
+        return response()->json(['error' => 'Mod version creation is not supported'], 404);
+    }
 }
